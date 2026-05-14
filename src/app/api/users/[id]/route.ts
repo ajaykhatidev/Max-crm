@@ -4,18 +4,19 @@ import { hashPassword } from '@/lib/auth-utils';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
-    const { name, email, role, permissions, password } = body;
+    const { name, email, role, permissions, features, password } = body;
 
     const updateData: any = {
       name,
       email,
       role,
       permissions,
+      features,
       updated_at: new Date().toISOString()
     };
 
@@ -23,8 +24,7 @@ export async function PATCH(
       updateData.password_hash = hashPassword(password);
     }
 
-    const { data, error } = await supabase
-      .from('users')
+    const { data, error } = await (supabase.from('users') as any)
       .update(updateData)
       .eq('id', id)
       .select();
@@ -40,13 +40,12 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
-    const { error } = await supabase
-      .from('users')
+    const { error } = await (supabase.from('users') as any)
       .delete()
       .eq('id', id);
 
