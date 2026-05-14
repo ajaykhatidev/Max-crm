@@ -11,7 +11,7 @@ export const verifyPassword = (password: string, storedHash: string | null): boo
   if (storedHash.startsWith('$2')) {
     try {
       return bcrypt.compareSync(password, storedHash);
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -38,7 +38,7 @@ export const verifyPassword = (password: string, storedHash: string | null): boo
       Buffer.from(hashHex, 'hex'),
       Buffer.from(expectedHash, 'hex')
     );
-  } catch (error) {
+  } catch {
     return false;
   }
 };

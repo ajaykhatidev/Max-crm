@@ -1,15 +1,34 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { useCallback, useEffect, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  AlertCircle,
+  Box,
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Edit2,
+  Eye,
+  EyeOff,
+  Handshake,
+  Key,
+  Mail,
+  Settings,
+  Target,
+  Trash2,
+  TrendingUp,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react';
+import AuthGuard from '@/components/AuthGuard';
+import AppShell from '@/components/AppShell';
+import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/supabase';
-import Link from 'next/link';
-import { 
-  Users, UserPlus, ChevronLeft, ChevronRight, 
-  Edit2, Trash2, X, Eye, EyeOff, ArrowLeft, 
-  Key, Box, TrendingUp, Settings, Clock, Target, 
-  Handshake, Building2, User as UserIcon, Mail, Shield, AlertCircle,
-  Star, Check
-} from 'lucide-react';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
 
@@ -25,34 +44,37 @@ const AVAILABLE_PERMISSIONS = [
   'access_performance',
   'access_settings',
   'manage_users',
-  'manage_unit_timeline:false'
+  'manage_unit_timeline:false',
 ];
 
-const AVAILABLE_FEATURES = [
-  'leads',
-  'deals',
-  'units',
-  'organizations_management'
-];
+const AVAILABLE_FEATURES = ['leads', 'deals', 'units', 'organizations_management'];
 
-const PERM_META: Record<string, { label: string, desc: string, icon: any }> = {
-  'access_leads': { label: 'Access Leads', desc: 'Can view leads data', icon: Eye },
-  'edit_leads': { label: 'Edit Leads', desc: 'Can modify existing leads', icon: Edit2 },
-  'delete_leads': { label: 'Delete Leads', desc: 'Can remove leads from system', icon: Trash2 },
-  'access_inventory': { label: 'Access Inventory', desc: 'Can view unit availability', icon: Box },
-  'edit_inventory': { label: 'Edit Inventory', desc: 'Can modify unit details', icon: Settings },
-  'edit_unit_btn': { label: 'Edit Unit Button', desc: 'Access to unit editing controls', icon: Edit2 },
-  'access_performance': { label: 'Access Performance', desc: 'Can view analytics and reports', icon: TrendingUp },
-  'access_settings': { label: 'Access Settings', desc: 'Can modify system settings', icon: Settings },
-  'manage_users': { label: 'Manage Users', desc: 'Can create and edit team members', icon: Users },
-  'manage_unit_timeline:false': { label: 'Manage Unit Timeline', desc: 'Access to unit timeline history', icon: Clock },
+const PERM_META: Record<string, { label: string; desc: string; icon: LucideIcon }> = {
+  access_leads: { label: 'Access Leads', desc: 'Can view leads data', icon: Eye },
+  edit_leads: { label: 'Edit Leads', desc: 'Can modify existing leads', icon: Edit2 },
+  delete_leads: { label: 'Delete Leads', desc: 'Can remove leads from system', icon: Trash2 },
+  access_inventory: { label: 'Access Inventory', desc: 'Can view unit availability', icon: Box },
+  edit_inventory: { label: 'Edit Inventory', desc: 'Can modify unit details', icon: Settings },
+  edit_unit_btn: { label: 'Edit Unit Button', desc: 'Access to unit editing controls', icon: Edit2 },
+  access_performance: { label: 'Access Performance', desc: 'Can view analytics and reports', icon: TrendingUp },
+  access_settings: { label: 'Access Settings', desc: 'Can modify system settings', icon: Settings },
+  manage_users: { label: 'Manage Users', desc: 'Can create and edit team members', icon: Users },
+  'manage_unit_timeline:false': {
+    label: 'Manage Unit Timeline',
+    desc: 'Access to unit timeline history',
+    icon: Clock,
+  },
 };
 
-const FEATURE_META: Record<string, { label: string, desc: string, icon: any }> = {
-  'leads': { label: 'Leads Management', desc: 'Track and manage potential clients', icon: Target },
-  'deals': { label: 'Deals Management', desc: 'Track and manage business deals', icon: Handshake },
-  'units': { label: 'Inventory (Units)', desc: 'Stock and unit availability', icon: Box },
-  'organizations_management': { label: 'Organizations', desc: 'System level configurations', icon: Building2 },
+const FEATURE_META: Record<string, { label: string; desc: string; icon: LucideIcon }> = {
+  leads: { label: 'Leads Management', desc: 'Track and manage potential clients', icon: Target },
+  deals: { label: 'Deals Management', desc: 'Track and manage business deals', icon: Handshake },
+  units: { label: 'Inventory (Units)', desc: 'Stock and unit availability', icon: Box },
+  organizations_management: {
+    label: 'Organizations',
+    desc: 'System level configurations',
+    icon: Building2,
+  },
 };
 
 export default function UsersPage() {
@@ -61,92 +83,112 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<'permissions' | 'features'>('permissions');
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  
+  const { user, signOut } = useAuth();
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     role: 'agent',
+    status: 'active',
     permissions: [] as string[],
-    features: [] as string[]
+    features: [] as string[],
   });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, error, count } = await supabase
+      const { data, error: fetchError, count } = await supabase
         .from('users')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (error) throw error;
-      setUsers((data as any) || []);
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      setUsers((data as UserRow[]) || []);
       setTotalCount(count || 0);
-    } catch (err: any) {
-      console.error('Error fetching users:', err);
-      setError(err.message);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to load users.');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    setMounted(true);
-    fetchUsers();
   }, [currentPage]);
 
-  const handleOpenCreateModal = () => {
+  useEffect(() => {
+    void (async () => {
+      await fetchUsers();
+    })();
+  }, [fetchUsers]);
+
+  const resetForm = () => {
     setEditingUser(null);
-    setFormData({ name: '', email: '', password: '', role: 'agent', permissions: [], features: [] });
     setShowPassword(false);
     setActiveTab('permissions');
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditModal = (user: UserRow) => {
-    setEditingUser(user);
     setFormData({
-      name: user.name || '',
-      email: user.email || '',
-      password: '', 
-      role: user.role || 'agent',
-      permissions: (user.permissions as string[]) || [],
-      features: (user.features as string[]) || []
+      name: '',
+      email: '',
+      password: '',
+      role: 'agent',
+      status: 'active',
+      permissions: [],
+      features: [],
     });
-    setShowPassword(false);
-    setActiveTab('permissions');
+  };
+
+  const handleOpenCreateModal = () => {
+    resetForm();
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOpenEditModal = (selectedUser: UserRow) => {
+    setEditingUser(selectedUser);
+    setShowPassword(false);
+    setActiveTab('permissions');
+    setFormData({
+      name: selectedUser.name || '',
+      email: selectedUser.email || '',
+      password: '',
+      role: selectedUser.role || 'agent',
+      status: selectedUser.status || 'inactive',
+      permissions: (selectedUser.permissions as string[]) || [],
+      features: (selectedUser.features as string[]) || [],
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     try {
       setSubmitting(true);
-      
+
       const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
       const method = editingUser ? 'PATCH' : 'POST';
-      
-      const payload = { ...formData };
+      const payload = { ...formData } as Record<string, unknown>;
+
       if (editingUser && !payload.password) {
-        delete (payload as any).password;
+        delete payload.password;
       }
 
       const response = await fetch(url, {
-        method: method,
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -154,21 +196,41 @@ export default function UsersPage() {
       if (!response.ok) {
         throw new Error(result.error || `Failed to ${editingUser ? 'update' : 'create'} user`);
       }
-      
+
       setIsModalOpen(false);
-      setEditingUser(null);
-      setFormData({ name: '', email: '', password: '', role: 'agent', permissions: [], features: [] });
+      resetForm();
       fetchUsers();
-    } catch (err: any) {
-      alert(`Error ${editingUser ? 'updating' : 'creating'} user: ` + err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Unable to save user.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleToggleStatus = async (user: UserRow) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      fetchUsers();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Unable to update status.');
+    }
+  };
+
   const handleDeleteUser = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
     try {
       const response = await fetch(`/api/users/${id}`, {
         method: 'DELETE',
@@ -178,476 +240,403 @@ export default function UsersPage() {
         const result = await response.json();
         throw new Error(result.error || 'Failed to delete user');
       }
-      
+
       fetchUsers();
-    } catch (err: any) {
-      alert('Error deleting user: ' + err.message);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Unable to delete user.');
     }
   };
 
-  const togglePermission = (perm: string) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: prev.permissions.includes(perm)
-        ? prev.permissions.filter(p => p !== perm)
-        : [...prev.permissions, perm]
+  const togglePermission = (permission: string) => {
+    setFormData((current) => ({
+      ...current,
+      permissions: current.permissions.includes(permission)
+        ? current.permissions.filter((item) => item !== permission)
+        : [...current.permissions, permission],
     }));
   };
 
-  const toggleFeature = (feat: string) => {
-    setFormData(prev => ({
-      ...prev,
-      features: prev.features.includes(feat)
-        ? prev.features.filter(f => f !== feat)
-        : [...prev.features, feat]
+  const toggleFeature = (feature: string) => {
+    setFormData((current) => ({
+      ...current,
+      features: current.features.includes(feature)
+        ? current.features.filter((item) => item !== feature)
+        : [...current.features, feature],
     }));
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8 animate-fade-in min-h-screen">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-        <div>
-          <Link 
-            href="/dashboard" 
-            className="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors mb-4 px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-4xl font-extrabold premium-gradient tracking-tight">Team Management</h1>
-          <p className="text-slate-400 mt-2 text-sm">Manage user access, roles, and permissions across the CRM.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="glass-card !p-3 !px-5 flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Users</p>
-              <p className="text-xl font-bold text-white">{totalCount}</p>
-            </div>
-          </div>
-          <button 
-            className="btn-primary shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all duration-300" 
+    <AuthGuard>
+      <AppShell
+        userName={user?.name || user?.email || 'Team Member'}
+        eyebrow="People operations"
+        title="Users"
+        description="A tidier access-management workspace for roles, permissions, and feature control across the CRM."
+        onSignOut={signOut}
+        action={
+          <button
+            type="button"
             onClick={handleOpenCreateModal}
+            className="flex items-center gap-2 rounded-full bg-[var(--surface-dark)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0f252d]"
           >
-            <UserPlus className="w-5 h-5" />
-            <span>Create User</span>
+            <UserPlus className="h-4 w-4" />
+            Create user
           </button>
-        </div>
-      </div>
+        }
+      >
+        <section className="grid gap-4 md:grid-cols-3">
+          {[
+            ['Total users', String(totalCount).padStart(2, '0'), 'Managed team records'],
+            ['Current page', String(currentPage), 'Pagination position'],
+            ['Access groups', String(ROLES.length), 'Defined role types'],
+          ].map(([label, value, caption]) => (
+            <article key={label} className="panel soft-ring rounded-[28px] p-5">
+              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">{label}</p>
+              <p className="mt-4 text-4xl font-semibold text-[var(--text)]">{value}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{caption}</p>
+            </article>
+          ))}
+        </section>
 
-      {/* Main Content */}
-      <div className="glass-card !p-0 overflow-hidden shadow-2xl border border-white/5">
-        {loading ? (
-          <div className="flex flex-col justify-center items-center h-[400px] gap-4">
-            <div className="spinner w-12 h-12"></div>
-            <p className="text-slate-400 font-medium animate-pulse">Loading team members...</p>
-          </div>
-        ) : error ? (
-          <div className="p-12 text-center flex flex-col items-center">
-            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-              <AlertCircle className="w-8 h-8 text-red-400" />
+        <section className="panel-strong soft-ring rounded-[32px] overflow-hidden">
+          {loading ? (
+            <div className="flex min-h-[360px] flex-col items-center justify-center gap-4 px-6 text-center">
+              <div className="spinner h-12 w-12" />
+              <p className="text-sm text-[var(--muted)]">Loading team members...</p>
             </div>
-            <p className="text-red-400 mb-6 max-w-md">{error}</p>
-            <button className="btn-primary !bg-red-500 hover:!bg-red-600" onClick={fetchUsers}>
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/5 border-b border-white/10 text-sm">
-                  <th className="p-4 pl-6 text-slate-300 font-semibold tracking-wide">User</th>
-                  <th className="p-4 text-slate-300 font-semibold tracking-wide">Role & Dept</th>
-                  <th className="p-4 text-slate-300 font-semibold tracking-wide">Status</th>
-                  <th className="p-4 text-slate-300 font-semibold tracking-wide hidden sm:table-cell">Joined</th>
-                  <th className="p-4 pr-6 text-right text-slate-300 font-semibold tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-12 text-center text-slate-400">
-                      <div className="flex flex-col items-center justify-center">
-                        <Users className="w-12 h-12 mb-4 opacity-50" />
-                        <p>No users found in the system.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                      <td className="p-4 pl-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-500/20">
-                            {user.name?.charAt(0).toUpperCase() || '?'}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-slate-100 group-hover:text-indigo-300 transition-colors">{user.name}</div>
-                            <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                              <Mail className="w-3 h-3" />
-                              {user.email}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-col items-start gap-2">
-                          <span className="text-xs inline-flex items-center gap-1 bg-indigo-500/10 text-indigo-300 px-2.5 py-1 rounded-full font-medium border border-indigo-500/20 capitalize shadow-sm">
-                            <Shield className="w-3 h-3" />
-                            {user.role}
-                          </span>
-                          <span className="text-xs text-slate-400 font-medium">
-                            {user.department || user.designation || 'General Staff'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${user.status === 'active' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-500'}`}></div>
-                          <span className={`text-xs font-medium capitalize ${user.status === 'active' ? 'text-emerald-400' : 'text-slate-400'}`}>
-                            {user.status || 'inactive'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-slate-400 text-sm hidden sm:table-cell">
-                        {mounted ? new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '...'}
-                      </td>
-                      <td className="p-4 pr-6 text-right">
-                        <div className="flex gap-2 justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => handleOpenEditModal(user)}
-                            className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 rounded-lg transition-colors tooltip"
-                            title="Edit User"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg transition-colors tooltip"
-                            title="Delete User"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {!loading && !error && totalCount > pageSize && (
-        <div className="flex justify-center items-center gap-2 mt-8">
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            className="flex items-center gap-1 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Prev
-          </button>
-          
-          <div className="flex gap-1">
-            {Array.from({ length: Math.ceil(totalCount / pageSize) }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-semibold transition-all ${
-                  currentPage === page 
-                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 border-none' 
-                    : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
-
-          <button 
-            disabled={currentPage === Math.ceil(totalCount / pageSize)}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            className="flex items-center gap-1 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md">
-          <div className="glass-card animate-fade-in w-full max-w-2xl max-h-[90vh] flex flex-col !p-0 overflow-hidden shadow-2xl border border-white/10">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
-                  {editingUser ? <Edit2 className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-                </div>
-                <h2 className="text-2xl font-bold text-white">
-                  {editingUser ? 'Edit Team Member' : 'New Team Member'}
-                </h2>
+          ) : error ? (
+            <div className="flex min-h-[360px] flex-col items-center justify-center gap-4 px-6 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#fff1ee] text-[#93442f]">
+                <AlertCircle className="h-8 w-8" />
               </div>
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto">
-              <form id="user-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
-                
-                {/* Basic Info Section */}
-                <div className="bg-white/5 rounded-2xl p-5 border border-white/5">
-                  <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <UserIcon className="w-4 h-4" /> Basic Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block mb-1.5 text-slate-400 text-sm font-medium">Full Name <span className="text-red-400">*</span></label>
-                      <input 
-                        required
-                        className="w-full p-3 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                        value={formData.name}
-                        onChange={e => setFormData({...formData, name: e.target.value})}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div>
-                      <label className="block mb-1.5 text-slate-400 text-sm font-medium">Email Address <span className="text-red-400">*</span></label>
-                      <input 
-                        required
-                        type="email"
-                        className="w-full p-3 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                        value={formData.email}
-                        onChange={e => setFormData({...formData, email: e.target.value})}
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
-                    <div>
-                      <label className="block mb-1.5 text-slate-400 text-sm font-medium">
-                        {editingUser ? 'Reset Password' : 'Password'} {editingUser ? '' : <span className="text-red-400">*</span>}
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
-                          <Key className="w-4 h-4" />
-                        </div>
-                        <input 
-                          required={!editingUser}
-                          type={showPassword ? 'text' : 'password'}
-                          className="w-full p-3 pl-10 pr-10 rounded-xl bg-slate-900/50 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                          value={formData.password}
-                          onChange={e => setFormData({...formData, password: e.target.value})}
-                          placeholder={editingUser ? "Leave blank to keep current" : "Create strong password"}
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block mb-1.5 text-slate-400 text-sm font-medium">System Role</label>
-                      <select 
-                        className="w-full p-3 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none"
-                        value={formData.role}
-                        onChange={e => {
-                          const newRole = e.target.value;
-                          const newPermissions = newRole === 'administrator' 
-                            ? ['manage_unit_timeline:false', 'edit_unit_btn'] 
-                            : [];
-                          const newFeatures = newRole === 'administrator'
-                            ? ['leads', 'deals', 'units', 'organizations_management']
-                            : [];
-                          setFormData({...formData, role: newRole, permissions: newPermissions, features: newFeatures});
-                        }}
-                      >
-                        {ROLES.map(role => (
-                          <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Permissions & Features Section */}
-                <div className="bg-white/5 rounded-2xl p-1 border border-white/5 flex flex-col">
-                  {/* Tabs */}
-                  <div className="flex border-b border-white/10 p-1">
-                    <button 
-                      type="button"
-                      onClick={() => setActiveTab('permissions')}
-                      className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all flex justify-center items-center gap-2 ${
-                        activeTab === 'permissions' 
-                          ? 'bg-indigo-500/20 text-indigo-400 shadow-inner border border-indigo-500/20' 
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                      }`}
-                    >
-                      <Key className="w-4 h-4" />
-                      Permissions
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setActiveTab('features')}
-                      className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all flex justify-center items-center gap-2 ${
-                        activeTab === 'features' 
-                          ? 'bg-indigo-500/20 text-indigo-400 shadow-inner border border-indigo-500/20' 
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                      }`}
-                    >
-                      <Star className="w-4 h-4" />
-                      Features Access
-                    </button>
-                  </div>
-
-                  {/* Tab Content */}
-                  <div className="p-4">
-                    {activeTab === 'permissions' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                        {AVAILABLE_PERMISSIONS.map(perm => {
-                          const isSelected = formData.permissions.includes(perm);
-                          const meta = PERM_META[perm] || { 
-                            label: perm.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '), 
-                            desc: 'System permission', 
-                            icon: Key 
-                          };
-                          const Icon = meta.icon;
-                          
-                          return (
-                            <div 
-                              key={perm}
-                              onClick={() => togglePermission(perm)}
-                              className={`group flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-all duration-200 ${
-                                isSelected 
-                                  ? 'bg-indigo-500/10 border-indigo-500/30' 
-                                  : 'bg-white/[0.02] border-white/5 hover:border-white/20'
-                              }`}
-                            >
-                              <div className={`mt-0.5 p-2 rounded-lg transition-colors ${isSelected ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-white/10 text-slate-400 group-hover:text-slate-300'}`}>
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1">
-                                <div className={`text-sm font-semibold mb-0.5 ${isSelected ? 'text-indigo-300' : 'text-slate-300'}`}>
-                                  {meta.label}
-                                </div>
-                                <div className="text-xs text-slate-500 line-clamp-1">{meta.desc}</div>
-                              </div>
-                              <div className={`w-10 h-5 mt-1 rounded-full relative transition-colors ${isSelected ? 'bg-indigo-500' : 'bg-slate-700'}`}>
-                                <div className={`absolute top-0.5 bottom-0.5 w-4 bg-white rounded-full transition-all shadow-sm ${isSelected ? 'left-[22px]' : 'left-0.5'}`} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                        {AVAILABLE_FEATURES.map(feat => {
-                          const isSelected = formData.features.includes(feat);
-                          const meta = FEATURE_META[feat] || { 
-                            label: feat.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '), 
-                            desc: 'System feature', 
-                            icon: Star 
-                          };
-                          const Icon = meta.icon;
-
-                          return (
-                            <div 
-                              key={feat}
-                              onClick={() => toggleFeature(feat)}
-                              className={`group flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-all duration-200 ${
-                                isSelected 
-                                  ? 'bg-indigo-500/10 border-indigo-500/30' 
-                                  : 'bg-white/[0.02] border-white/5 hover:border-white/20'
-                              }`}
-                            >
-                              <div className={`mt-0.5 p-2 rounded-lg transition-colors ${isSelected ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-white/10 text-slate-400 group-hover:text-slate-300'}`}>
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1">
-                                <div className={`text-sm font-semibold mb-0.5 ${isSelected ? 'text-indigo-300' : 'text-slate-300'}`}>
-                                  {meta.label}
-                                </div>
-                                <div className="text-xs text-slate-500 line-clamp-1">{meta.desc}</div>
-                              </div>
-                              <div className={`w-10 h-5 mt-1 rounded-full relative transition-colors ${isSelected ? 'bg-indigo-500' : 'bg-slate-700'}`}>
-                                <div className={`absolute top-0.5 bottom-0.5 w-4 bg-white rounded-full transition-all shadow-sm ${isSelected ? 'left-[22px]' : 'left-0.5'}`} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-6 border-t border-white/10 bg-black/20 flex gap-3 justify-end mt-auto">
-              <button 
+              <p className="max-w-md text-sm text-[#93442f]">{error}</p>
+              <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                onClick={fetchUsers}
+                className="rounded-full bg-[var(--surface-dark)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0f252d]"
               >
-                Cancel
+                Try again
               </button>
-              <button 
-                type="submit"
-                form="user-form"
-                disabled={submitting}
-                className={`btn-primary px-8 py-2.5 rounded-xl text-sm shadow-lg ${submitting ? 'opacity-70 cursor-wait' : 'shadow-indigo-500/25 hover:shadow-indigo-500/40'}`}
-              >
-                {submitting ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    {editingUser ? 'Updating...' : 'Creating...'}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    {editingUser ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                    {editingUser ? 'Save Changes' : 'Create User'}
-                  </span>
-                )}
-              </button>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left">
+                  <thead className="border-b border-[var(--line)] bg-white/45">
+                    <tr className="text-sm text-[var(--muted)]">
+                      <th className="px-6 py-4 font-semibold">User</th>
+                      <th className="px-6 py-4 font-semibold">Role</th>
+                      <th className="px-6 py-4 font-semibold">Status</th>
+                      <th className="px-6 py-4 font-semibold">Joined</th>
+                      <th className="px-6 py-4 text-right font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-16 text-center text-sm text-[var(--muted)]">
+                          No users found in the system.
+                        </td>
+                      </tr>
+                    ) : (
+                      users.map((row) => (
+                        <tr key={row.id} className="border-b border-[var(--line)] last:border-b-0">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] font-semibold text-[var(--accent-strong)]">
+                                {row.name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-[var(--text)]">{row.name || 'Unnamed user'}</p>
+                                <p className="mt-1 text-sm text-[var(--muted)]">{row.email || 'No email'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold capitalize text-[var(--accent-strong)]">
+                              {row.role || 'agent'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => handleToggleStatus(row)}
+                              className={`group relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out outline-none ${
+                                row.status === 'active' ? 'bg-[var(--accent)]' : 'bg-[#ece8df]'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  row.status === 'active' ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                            <span className="ml-3 text-xs font-semibold capitalize text-[var(--muted)]">
+                              {row.status || 'inactive'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[var(--muted)]">
+                            {new Date(row.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditModal(row)}
+                                className="rounded-full border border-[var(--line)] bg-white/80 p-2 text-[var(--text)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                                aria-label="Edit user"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(row.id)}
+                                className="rounded-full border border-[#e7b7ab] bg-[#fff1ee] p-2 text-[#93442f] transition hover:bg-[#fde4de]"
+                                aria-label="Delete user"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalCount > pageSize ? (
+                <div className="flex flex-col gap-4 border-t border-[var(--line)] bg-white/40 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                  <p className="text-sm text-[var(--muted)]">
+                    Page <span className="font-semibold text-[var(--text)]">{currentPage}</span> of {totalPages}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+                      className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/75 px-4 py-2 text-sm font-semibold text-[var(--text)] transition disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
+                      className="flex items-center gap-2 rounded-full bg-[var(--surface-dark)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f252d] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        {isModalOpen ? (
+          <div className="animated-fade fixed inset-0 z-50 flex items-center justify-center bg-[#14333c]/40 p-4 backdrop-blur-md">
+            <div className="panel-strong soft-ring max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-[34px]">
+              <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-5">
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+                    {editingUser ? 'Update access' : 'New team member'}
+                  </p>
+                  <h3 className="mt-2 text-2xl font-semibold text-[var(--text)]">
+                    {editingUser ? 'Edit user profile' : 'Create user profile'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="rounded-full border border-[var(--line)] bg-white/75 p-2 text-[var(--text)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  aria-label="Close modal"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="max-h-[72vh] overflow-y-auto px-6 py-6">
+                <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
+                  <section className="rounded-[28px] border border-[var(--line)] bg-white/65 p-5">
+                    <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+                      Identity
+                    </p>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-[var(--text)]">Full name</span>
+                        <input
+                          required
+                          value={formData.name}
+                          onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                          placeholder="John Doe"
+                          className="w-full rounded-[20px] border border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--text)] outline-none"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-[var(--text)]">Email address</span>
+                        <div className="flex items-center gap-3 rounded-[20px] border border-[var(--line)] bg-white/75 px-4 py-3">
+                          <Mail className="h-4 w-4 text-[var(--muted)]" />
+                          <input
+                            required
+                            type="email"
+                            value={formData.email}
+                            onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                            placeholder="john@example.com"
+                            className="w-full bg-transparent text-sm text-[var(--text)] outline-none"
+                          />
+                        </div>
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-[var(--text)]">
+                          {editingUser ? 'Reset password' : 'Password'}
+                        </span>
+                        <div className="flex items-center gap-3 rounded-[20px] border border-[var(--line)] bg-white/75 px-4 py-3">
+                          <Key className="h-4 w-4 text-[var(--muted)]" />
+                          <input
+                            required={!editingUser}
+                            type={showPassword ? 'text' : 'password'}
+                            value={formData.password}
+                            onChange={(event) => setFormData({ ...formData, password: event.target.value })}
+                            placeholder={editingUser ? 'Leave blank to keep current password' : 'Create strong password'}
+                            className="w-full bg-transparent text-sm text-[var(--text)] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((current) => !current)}
+                            className="text-[var(--muted)] transition hover:text-[var(--accent)]"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-[var(--text)]">System role</span>
+                        <select
+                          value={formData.role}
+                          onChange={(event) => {
+                            const newRole = event.target.value;
+                            setFormData({
+                              ...formData,
+                              role: newRole,
+                              permissions:
+                                newRole === 'administrator'
+                                  ? ['manage_unit_timeline:false', 'edit_unit_btn']
+                                  : [],
+                              features:
+                                newRole === 'administrator'
+                                  ? ['leads', 'deals', 'units', 'organizations_management']
+                                  : [],
+                            });
+                          }}
+                          className="w-full rounded-[20px] border border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--text)] outline-none"
+                        >
+                          {ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-[var(--text)]">Account status</span>
+                        <select
+                          value={formData.status}
+                          onChange={(event) => setFormData({ ...formData, status: event.target.value })}
+                          className="w-full rounded-[20px] border border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--text)] outline-none"
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[28px] border border-[var(--line)] bg-white/65 p-5">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('permissions')}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          activeTab === 'permissions'
+                            ? 'bg-[var(--surface-dark)] text-white'
+                            : 'border border-[var(--line)] bg-white/75 text-[var(--text)]'
+                        }`}
+                      >
+                        Permissions
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('features')}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          activeTab === 'features'
+                            ? 'bg-[var(--surface-dark)] text-white'
+                            : 'border border-[var(--line)] bg-white/75 text-[var(--text)]'
+                        }`}
+                      >
+                        Features
+                      </button>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 md:grid-cols-2">
+                      {(activeTab === 'permissions' ? AVAILABLE_PERMISSIONS : AVAILABLE_FEATURES).map((item) => {
+                        const selected =
+                          activeTab === 'permissions'
+                            ? formData.permissions.includes(item)
+                            : formData.features.includes(item);
+                        const meta = activeTab === 'permissions' ? PERM_META[item] : FEATURE_META[item];
+                        const Icon = meta.icon;
+
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => (activeTab === 'permissions' ? togglePermission(item) : toggleFeature(item))}
+                            className={`flex items-start gap-3 rounded-[22px] border p-4 text-left transition ${
+                              selected
+                                ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                                : 'border-[var(--line)] bg-white/75 hover:bg-white'
+                            }`}
+                          >
+                            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-[var(--accent)]">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="block">
+                              <span className="block text-sm font-semibold text-[var(--text)]">{meta.label}</span>
+                              <span className="mt-1 block text-sm leading-6 text-[var(--muted)]">{meta.desc}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </form>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-[var(--line)] bg-white/45 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="rounded-full border border-[var(--line)] bg-white/80 px-5 py-3 text-sm font-semibold text-[var(--text)] transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="user-form"
+                  disabled={submitting}
+                  className="flex items-center gap-2 rounded-full bg-[var(--surface-dark)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0f252d] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {submitting ? <div className="spinner h-4 w-4 border-white/20 border-t-white" /> : editingUser ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  {editingUser ? 'Save changes' : 'Create user'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Global styles specifically for this professional view that might not be in globals.css */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.02);
-          border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
-      `}} />
-    </div>
+        ) : null}
+      </AppShell>
+    </AuthGuard>
   );
 }
