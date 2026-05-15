@@ -42,56 +42,58 @@ export default function ModuleShowcasePage({
       >
         <FeatureSlider slides={slides} />
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-6 md:grid-cols-3">
           {stats.map((stat) => (
-            <article key={stat.label} className="panel soft-ring rounded-[28px] p-5">
-              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">{stat.label}</p>
-              <p className="mt-4 text-4xl font-semibold text-[var(--text)]">{stat.value}</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">{stat.caption}</p>
+            <article key={stat.label} className="panel soft-ring rounded-[32px] p-8">
+              <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--accent)] uppercase">{stat.label}</p>
+              <p className="font-display mt-4 text-5xl font-bold text-[var(--text)] tracking-tight">{stat.value}</p>
+              <p className="mt-3 text-sm font-medium text-[var(--muted)]">{stat.caption}</p>
             </article>
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="panel-strong soft-ring rounded-[32px] p-6 md:p-7">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                <Sparkles className="h-5 w-5" />
+        <section className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="panel soft-ring rounded-[40px] p-8 md:p-10">
+            <div className="flex items-center gap-4">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                <Sparkles className="h-6 w-6" />
               </span>
               <div>
-                <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+                <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">
                   Workspace blocks
                 </p>
-                <h3 className="mt-1 text-2xl font-semibold text-[var(--text)]">Professional module layout</h3>
+                <h3 className="font-display mt-1 text-3xl font-bold text-[var(--text)] tracking-tight">Professional module layout</h3>
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
               {cards.map((card) => {
                 const Icon = card.icon;
 
                 return (
-                  <article key={card.title} className="rounded-[26px] border border-[var(--line)] bg-white/65 p-5">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff7ed] text-[var(--warn)]">
+                  <article key={card.title} className="group rounded-[32px] border border-[var(--line)] bg-white p-6 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-xl hover:shadow-indigo-50">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-[var(--muted)] transition-colors group-hover:bg-[var(--accent-soft)] group-hover:text-[var(--accent)]">
                       <Icon className="h-5 w-5" />
                     </span>
-                    <h4 className="mt-5 text-lg font-semibold text-[var(--text)]">{card.title}</h4>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{card.description}</p>
+                    <h4 className="mt-6 text-xl font-bold text-[var(--text)] tracking-tight">{card.title}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{card.description}</p>
                   </article>
                 );
               })}
             </div>
           </div>
 
-          <article className="panel-strong soft-ring rounded-[32px] p-6">
-            <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+          <article className="panel soft-ring rounded-[40px] p-8 md:p-10">
+            <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">
               Suggested operating flow
             </p>
-            <div className="mt-5 space-y-3">
+            <div className="mt-8 space-y-4">
               {notes.map((note) => (
-                <div key={note} className="flex items-start gap-3 rounded-[22px] border border-[var(--line)] bg-white/65 px-4 py-4">
-                  <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[var(--accent)]" />
-                  <p className="text-sm leading-6 text-[var(--text)]">{note}</p>
+                <div key={note} className="flex items-start gap-4 rounded-3xl border border-[var(--line)] bg-white/50 px-5 py-5 transition-all hover:bg-white">
+                  <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed text-[var(--text)]">{note}</p>
                 </div>
               ))}
             </div>

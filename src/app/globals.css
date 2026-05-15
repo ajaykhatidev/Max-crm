@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f1e8;
-  --bg-strong: #e9e0cf;
-  --surface: rgba(255, 252, 246, 0.78);
-  --surface-strong: rgba(255, 250, 242, 0.92);
-  --surface-dark: #17313a;
-  --line: rgba(23, 49, 58, 0.12);
-  --line-strong: rgba(23, 49, 58, 0.22);
-  --text: #18313a;
-  --muted: #61757c;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
-  --accent-soft: rgba(15, 118, 110, 0.12);
-  --warn: #b45309;
-  --rose: #be5c44;
-  --shadow: 0 24px 80px rgba(23, 49, 58, 0.12);
+  --bg: #f8fafc;
+  --bg-strong: #f1f5f9;
+  --surface: rgba(255, 255, 255, 0.7);
+  --surface-strong: rgba(255, 255, 255, 0.85);
+  --surface-dark: #0f172a;
+  --line: rgba(148, 163, 184, 0.15);
+  --line-strong: rgba(148, 163, 184, 0.25);
+  --text: #1e293b;
+  --muted: #64748b;
+  --accent: #6366f1;
+  --accent-strong: #4f46e5;
+  --accent-soft: rgba(99, 102, 241, 0.1);
+  --warn: #f59e0b;
+  --rose: #ef4444;
+  --shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08);
 }
 
 * {
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
@@ -30,11 +32,11 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--text);
-  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(180, 83, 9, 0.12), transparent 26%),
-    linear-gradient(180deg, #f7f3eb 0%, #f1eadc 100%);
+  font-family: var(--font-inter), sans-serif;
+  background: 
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.05), transparent 40%),
+    var(--bg);
 }
 
 a {
@@ -59,70 +61,76 @@ textarea {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(rgba(23, 49, 58, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23, 49, 58, 0.045) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 92%);
+  background-image: 
+    radial-gradient(circle at 2px 2px, var(--line) 1px, transparent 0);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at center, black, transparent 80%);
+  opacity: 0.4;
 }
 
 .panel {
   border: 1px solid var(--line);
   background: var(--surface);
-  backdrop-filter: blur(22px);
+  backdrop-filter: blur(12px);
   box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.panel:hover {
+  border-color: var(--line-strong);
 }
 
 .panel-strong {
   border: 1px solid var(--line-strong);
   background: var(--surface-strong);
-  backdrop-filter: blur(26px);
+  backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
 }
 
 .soft-ring {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.45) inset,
-    0 18px 40px rgba(23, 49, 58, 0.08);
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+    0 10px 30px -5px rgba(0, 0, 0, 0.05);
 }
 
 .accent-text {
-  background: linear-gradient(120deg, #17313a 0%, #0f766e 54%, #b45309 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #6366f1 50%, #4f46e5 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .font-display {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .hero-mesh {
-  background:
-    radial-gradient(circle at 20% 20%, rgba(15, 118, 110, 0.22), transparent 26%),
-    radial-gradient(circle at 82% 18%, rgba(180, 83, 9, 0.2), transparent 22%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 249, 240, 0.4));
+  background: 
+    radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.1), transparent 30%),
+    radial-gradient(circle at 90% 90%, rgba(79, 70, 229, 0.1), transparent 30%),
+    white;
 }
 
 .animated-rise {
-  animation: rise 0.5s ease-out both;
+  animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animated-fade {
-  animation: fade 0.4s ease-out both;
+  animation: fade 0.5s ease-out both;
 }
 
 .spinner {
-  border: 3px solid rgba(15, 118, 110, 0.14);
+  border: 2px solid rgba(99, 102, 241, 0.1);
   border-top-color: var(--accent);
   border-radius: 999px;
-  animation: spin 0.9s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;

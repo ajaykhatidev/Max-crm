@@ -98,108 +98,113 @@ export default function LeadsPage() {
           </button>
         }
       >
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-6 md:grid-cols-3">
           {[
             ['Visible records', String(filteredLeads.length).padStart(2, '0'), 'In current page view'],
             ['New leads', String(newLeads).padStart(2, '0'), 'Require initial follow-up'],
             ['Contacted', String(contactedLeads).padStart(2, '0'), 'Already in motion'],
           ].map(([label, value, caption]) => (
-            <article key={label} className="panel soft-ring rounded-[28px] p-5">
-              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">{label}</p>
-              <p className="mt-4 text-4xl font-semibold text-[var(--text)]">{value}</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">{caption}</p>
+            <article key={label} className="panel soft-ring rounded-[32px] p-8">
+              <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--accent)] uppercase">{label}</p>
+              <p className="font-display mt-4 text-5xl font-bold text-[var(--text)] tracking-tight">{value}</p>
+              <p className="mt-3 text-sm font-medium text-[var(--muted)]">{caption}</p>
             </article>
           ))}
         </section>
 
-        <section className="panel-strong soft-ring rounded-[32px] p-5 md:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <section className="panel soft-ring rounded-[40px] p-8 md:p-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+              <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">
                 Prospect queue
               </p>
-              <h3 className="mt-2 text-2xl font-semibold text-[var(--text)]">Lead review table</h3>
+              <h3 className="font-display mt-2 text-3xl font-bold text-[var(--text)] tracking-tight">Lead review table</h3>
             </div>
 
-            <label className="flex items-center gap-3 rounded-full border border-[var(--line)] bg-white/75 px-4 py-3">
-              <Search className="h-4 w-4 text-[var(--muted)]" />
+            <label className="group flex items-center gap-4 rounded-2xl border border-[var(--line)] bg-slate-50 px-5 py-4 transition-all focus-within:border-[var(--accent)] focus-within:bg-white focus-within:shadow-lg focus-within:shadow-indigo-50">
+              <Search className="h-4 w-4 text-slate-400 group-focus-within:text-[var(--accent)]" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search this page of leads"
-                className="w-full min-w-[180px] bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                className="w-full min-w-[220px] bg-transparent text-sm font-medium text-[var(--text)] outline-none placeholder:text-slate-400"
               />
             </label>
           </div>
 
-          <div className="mt-6 overflow-x-auto rounded-[28px] border border-[var(--line)] bg-white/72">
-            <table className="min-w-full text-left">
-              <thead className="border-b border-[var(--line)]">
-                <tr className="text-sm text-[var(--muted)]">
-                  <th className="px-5 py-4 font-semibold">Prospect</th>
-                  <th className="px-5 py-4 font-semibold">Contact</th>
-                  <th className="px-5 py-4 font-semibold">Status</th>
-                  <th className="px-5 py-4 font-semibold">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-14 text-center">
-                      <div className="spinner mx-auto h-10 w-10" />
-                    </td>
+          <div className="mt-10 overflow-hidden rounded-[32px] border border-[var(--line)] bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead>
+                  <tr className="border-b border-[var(--line)] bg-slate-50/50 text-[10px] font-bold tracking-widest text-[var(--muted)] uppercase">
+                    <th className="px-8 py-5">Prospect</th>
+                    <th className="px-8 py-5">Contact</th>
+                    <th className="px-8 py-5 text-center">Status</th>
+                    <th className="px-8 py-5 text-right">Created</th>
                   </tr>
-                ) : filteredLeads.length ? (
-                  filteredLeads.map((lead) => (
-                    <tr key={lead.id} className="border-b border-[var(--line)] last:border-b-0">
-                      <td className="px-5 py-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                            <Target className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-[var(--text)]">
-                              {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || 'Unnamed lead'}
-                            </p>
-                            <p className="mt-1 text-sm text-[var(--muted)]">{lead.title || 'No title added'}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-medium text-[var(--text)]">{lead.email || 'No email'}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">{lead.phone || 'No phone number'}</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-strong)]">
-                          {lead.status || 'New'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-[var(--muted)]">
-                        {new Date(lead.created_at).toLocaleDateString()}
+                </thead>
+                <tbody className="divide-y divide-[var(--line)]">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-20 text-center">
+                        <div className="spinner mx-auto h-12 w-12" />
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-14 text-center text-sm text-[var(--muted)]">
-                      No leads match this view.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  ) : filteredLeads.length ? (
+                    filteredLeads.map((lead) => (
+                      <tr key={lead.id} className="group transition-colors hover:bg-slate-50/50">
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 transition-colors group-hover:bg-[var(--accent-soft)] group-hover:text-[var(--accent)]">
+                              <Target className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-[var(--text)] tracking-tight">
+                                {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || 'Unnamed lead'}
+                              </p>
+                              <p className="mt-1 truncate text-xs font-medium text-[var(--muted)]">{lead.title || 'No title'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <p className="text-sm font-bold text-[var(--text)] tracking-tight">{lead.email || '—'}</p>
+                          <p className="mt-1 text-xs font-medium text-[var(--muted)]">{lead.phone || '—'}</p>
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                          <span className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[10px] font-bold tracking-wider text-[var(--accent-strong)] uppercase">
+                            {lead.status || 'New'}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-right text-xs font-bold text-[var(--muted)] tabular-nums">
+                          {new Date(lead.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-20 text-center">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-300">
+                          <Search className="h-8 w-8" />
+                        </div>
+                        <p className="mt-4 text-sm font-medium text-[var(--muted)]">No leads found matching your search.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-[var(--muted)]">
-              Page <span className="font-semibold text-[var(--text)]">{page}</span> of {totalPages}
+          <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between px-2">
+            <p className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest">
+              Page <span className="text-[var(--text)]">{page}</span> / {totalPages}
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button
                 type="button"
                 disabled={page === 1 || loading}
                 onClick={() => setPage((current) => current - 1)}
-                className="rounded-full border border-[var(--line)] bg-white/70 px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-2xl border border-[var(--line)] bg-white px-6 py-3 text-xs font-bold text-[var(--text)] tracking-widest uppercase transition hover:border-[var(--accent)] hover:shadow-lg hover:shadow-indigo-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Previous
               </button>
@@ -207,7 +212,7 @@ export default function LeadsPage() {
                 type="button"
                 disabled={page === totalPages || loading}
                 onClick={() => setPage((current) => current + 1)}
-                className="rounded-full bg-[var(--surface-dark)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f252d] disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-2xl bg-[var(--surface-dark)] px-6 py-3 text-xs font-bold text-white tracking-widest uppercase shadow-lg shadow-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
               </button>

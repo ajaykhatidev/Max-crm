@@ -82,7 +82,7 @@ export default function DashboardPage() {
       >
         <FeatureSlider slides={slides} />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {[
             ['Qualified leads', '128', 'This week'],
             ['Inventory alerts', '07', 'Need action'],
@@ -91,31 +91,33 @@ export default function DashboardPage() {
           ].map(([label, value, caption], index) => (
             <article
               key={label}
-              className="panel soft-ring animated-rise rounded-[28px] p-5"
+              className="panel soft-ring animated-rise rounded-[32px] p-8"
               style={{ animationDelay: `${index * 80}ms` }}
             >
-              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+              <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--accent)] uppercase">
                 {label}
               </p>
-              <p className="mt-4 text-4xl font-semibold text-[var(--text)]">{value}</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">{caption}</p>
+              <p className="font-display mt-4 text-5xl font-bold text-[var(--text)] tracking-tight">{value}</p>
+              <p className="mt-3 text-sm font-medium text-[var(--muted)]">{caption}</p>
             </article>
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="panel-strong soft-ring rounded-[32px] p-6 md:p-7">
-            <div className="flex items-center justify-between gap-3">
+        <section className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="panel soft-ring rounded-[40px] p-8 md:p-10">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+                <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">
                   Work areas
                 </p>
-                <h3 className="mt-3 text-2xl font-semibold text-[var(--text)]">Core CRM modules</h3>
+                <h3 className="font-display mt-2 text-3xl font-bold text-[var(--text)] tracking-tight">Core CRM modules</h3>
               </div>
-              <ChartNoAxesColumn className="h-5 w-5 text-[var(--accent)]" />
+              <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-[var(--accent)]">
+                <ChartNoAxesColumn className="h-6 w-6" />
+              </div>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
               {moduleCards.map((card) => {
                 const Icon = card.icon;
 
@@ -123,62 +125,62 @@ export default function DashboardPage() {
                   <Link
                     key={card.href}
                     href={card.href}
-                    className="group rounded-[26px] border border-[var(--line)] bg-white/60 p-5 transition hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-white/80"
+                    className="group rounded-[32px] border border-[var(--line)] bg-white p-6 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-xl hover:shadow-indigo-50"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-[var(--muted)] transition-colors group-hover:bg-[var(--accent-soft)] group-hover:text-[var(--accent)]">
                         <Icon className="h-5 w-5" />
                       </span>
-                      <ChevronRight className="h-5 w-5 text-[var(--muted)] transition group-hover:text-[var(--accent)]" />
+                      <ChevronRight className="h-5 w-5 text-slate-300 transition group-hover:text-[var(--accent)] group-hover:translate-x-1" />
                     </div>
-                    <h4 className="mt-6 text-lg font-semibold text-[var(--text)]">{card.title}</h4>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{card.description}</p>
+                    <h4 className="mt-6 text-xl font-bold text-[var(--text)] tracking-tight">{card.title}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{card.description}</p>
                   </Link>
                 );
               })}
             </div>
           </div>
 
-          <div className="space-y-6">
-            <article className="panel-strong soft-ring rounded-[32px] p-6">
-              <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff1df] text-[var(--warn)]">
+          <div className="space-y-8">
+            <article className="panel soft-ring rounded-[40px] p-8">
+              <div className="flex items-center gap-4">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
                   <Sparkles className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+                  <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">
                     Focus today
                   </p>
-                  <h3 className="mt-1 text-xl font-semibold text-[var(--text)]">3 launch-critical actions</h3>
+                  <h3 className="font-display mt-1 text-2xl font-bold text-[var(--text)] tracking-tight">Daily actions</h3>
                 </div>
               </div>
 
-              <div className="mt-6 space-y-3">
+              <div className="mt-8 space-y-3">
                 {[
                   'Clean the oldest unassigned leads before noon.',
                   'Review low-stock projects approaching weekend campaigns.',
                   'Confirm admin permissions for new onboarding users.',
                 ].map((item) => (
-                  <div key={item} className="rounded-[22px] border border-[var(--line)] bg-white/65 px-4 py-4 text-sm text-[var(--text)]">
+                  <div key={item} className="rounded-2xl border border-[var(--line)] bg-slate-50/50 px-5 py-4 text-sm font-medium text-[var(--text)] transition-colors hover:bg-slate-50">
                     {item}
                   </div>
                 ))}
               </div>
             </article>
 
-            <article className="panel-strong soft-ring rounded-[32px] p-6">
-              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--muted)] uppercase">
+            <article className="panel soft-ring rounded-[40px] p-8">
+              <p className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">
                 Recent movement
               </p>
-              <div className="mt-5 space-y-4">
+              <div className="mt-8 space-y-4">
                 {[
                   ['Lead imported', '31 new records synced from campaign intake.'],
                   ['Inventory updated', 'Palm Heights inventory status refreshed 8 minutes ago.'],
                   ['User access changed', 'Permissions adjusted for 2 coordinators.'],
                 ].map(([title, description]) => (
-                  <div key={title} className="rounded-[22px] border border-[var(--line)] bg-white/65 px-4 py-4">
-                    <p className="text-sm font-semibold text-[var(--text)]">{title}</p>
-                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{description}</p>
+                  <div key={title} className="rounded-2xl border border-[var(--line)] bg-slate-50/50 px-5 py-5 transition-all hover:bg-white">
+                    <p className="text-sm font-bold text-[var(--text)] tracking-tight">{title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">{description}</p>
                   </div>
                 ))}
               </div>
