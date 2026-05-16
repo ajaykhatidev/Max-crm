@@ -16,6 +16,7 @@ import {
   Handshake,
   Key,
   Mail,
+  Search,
   Settings,
   Target,
   Trash2,
@@ -88,6 +89,7 @@ export default function UsersPage() {
   const [activeTab, setActiveTab] = useState<'permissions' | 'features'>('permissions');
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, signOut } = useAuth();
 
   const pageSize = 10;
@@ -109,9 +111,15 @@ export default function UsersPage() {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, error: fetchError, count } = await supabase
+      let query = supabase
         .from('users')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact' });
+
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
+      }
+
+      const { data, error: fetchError, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -127,7 +135,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage]);
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
     void (async () => {
@@ -296,6 +304,24 @@ export default function UsersPage() {
               <p className="mt-2 text-sm text-[var(--muted)]">{caption}</p>
             </article>
           ))}
+        </section>
+
+        <section className="mt-8">
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full rounded-[24px] border border-[var(--line)] bg-white/75 px-14 py-4 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)] focus:bg-white"
+              />
+            </div>
+          </div>
         </section>
 
         <section className="panel-strong soft-ring rounded-[32px] overflow-hidden">

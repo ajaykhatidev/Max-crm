@@ -22,7 +22,13 @@ export async function POST(request: Request) {
       .eq('email', email)
       .single();
 
-    if (error || !user) {
+    if (error) {
+      console.error('Supabase error fetching user:', error);
+      return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    if (!user) {
+      console.log('User not found in database:', email);
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -41,6 +47,7 @@ export async function POST(request: Request) {
       (typedUser.temp_password ? password === typedUser.temp_password : false);
 
     if (!isPasswordValid) {
+      console.log('Invalid password for user:', email);
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
 
